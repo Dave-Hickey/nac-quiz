@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MCQ Quiz Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EEF1F0;
+    --panel: #FFFFFF;
+    --panel-2: #F5F7F6;
+    --border: #D6DDDA;
+    --text: #14201C;
+    --muted: #5B6B65;
+    --accent: #B4750F;
+    --accent-soft: #F3E2C4;
+    --good: #2F7A52;
+    --good-soft: #DCEFE3;
+    --bad: #A3402F;
+    --bad-soft: #F6DEDA;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --sans: 'IBM Plex Sans', system-ui, sans-serif;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(20,32,28,0.06), 0 6px 20px rgba(20,32,28,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10151A;
+      --panel: #171E24;
+      --panel-2: #1D262D;
+      --border: #2A343C;
+      --text: #E7EDEB;
+      --muted: #8CA098;
+      --accent: #E0A840;
+      --accent-soft: #3A311C;
+      --good: #6FC298;
+      --good-soft: #163024;
+      --bad: #E28271;
+      --bad-soft: #33201C;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10151A;
+    --panel: #171E24;
+    --panel-2: #1D262D;
+    --border: #2A343C;
+    --text: #E7EDEB;
+    --muted: #8CA098;
+    --accent: #E0A840;
+    --accent-soft: #3A311C;
+    --good: #6FC298;
+    --good-soft: #163024;
+    --bad: #E28271;
+    --bad-soft: #33201C;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 28px 18px 60px;
+  }
+  header.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 22px;
+    cursor: pointer;
+  }
+  header.top h1 {
+    font-size: 19px;
+    letter-spacing: 0.2px;
+    margin: 0;
+  }
+  header.top .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  h2.section-title {
+    font-size: 13px;
+    text-transform: none;
+    color: var(--muted);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .mode-tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 16px;
+  }
+  .mode-tabs button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 8px 6px;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .mode-tabs button.active {
+    background: var(--panel);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .section-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .section-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--panel-2);
+  }
+  .section-row.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .section-row .name { font-size: 14px; font-weight: 500; }
+  .section-row .count { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .radio-dot, .check-box {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid var(--muted);
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .check-box { border-radius: 4px; }
+  .section-row.selected .radio-dot, .section-row.selected .check-box { border-color: var(--accent); }
+  .section-row.selected .radio-dot::after {
+    content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  }
+  .section-row.selected .check-box::after {
+    content: '✓'; font-size: 11px; color: var(--accent); font-weight: 700;
+  }
+  .row-flex { display: flex; align-items: center; gap: 10px; }
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 2px;
+    font-size: 14px;
+  }
+  .toggle-row + .toggle-row { border-top: 1px solid var(--border); }
+  .switch {
+    width: 38px; height: 22px; border-radius: 20px;
+    background: var(--border);
+    position: relative; cursor: pointer; flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .switch.on { background: var(--accent); }
+  .switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; border-radius: 50%; background: var(--panel);
+    transition: transform 0.15s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .switch.on::after { transform: translateX(16px); }
+  .pool-line {
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    margin: 10px 0 14px;
+  }
+  button.primary {
+    width: 100%;
+    background: var(--accent);
+    color: #1A1204;
+    border: none;
+    padding: 13px;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.ghost {
+    width: 100%;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 11px;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .history-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 0;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  .history-item:last-child { border-bottom: none; }
+  .history-item .label { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+  .history-item .score { font-weight: 700; }
+  .history-item .trend { font-family: var(--mono); margin-left: 6px; }
+  .trend.up { color: var(--good); }
+  .trend.down { color: var(--bad); }
+  .trend.flat { color: var(--muted); }
+  .best-line { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .empty-note { font-size: 13px; color: var(--muted); }
+
+  /* Quiz screen */
+  .progress-bar {
+    position: sticky; top: env(safe-area-inset-top, 0px);
+    height: 5px; background: var(--border);
+    border-radius: 3px; overflow: hidden; z-index: 5; margin-bottom: 16px;
+  }
+  .progress-bar > div { height: 100%; background: var(--accent); transition: width 0.2s; }
+  .quiz-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .quiz-meta .timer { color: var(--text); font-weight: 600; }
+  .quiz-meta .timer.low { color: var(--bad); }
+  .q-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px;
+    scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 48px);
+  }
+  .q-card.active { border-color: var(--accent); }
+  .q-num { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-bottom: 6px; }
+  .q-text { font-size: 15px; line-height: 1.45; margin-bottom: 12px; }
+  .opt {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 11px; border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 7px; cursor: pointer; font-size: 14px; line-height: 1.4;
+    background: var(--panel-2);
+  }
+  .opt .letter {
+    font-family: var(--mono); font-weight: 700; font-size: 12px;
+    color: var(--muted); border: 1px solid var(--border); border-radius: 5px;
+    width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .opt.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .opt.selected .letter { border-color: var(--accent); color: var(--accent); }
+  .opt.correct { border-color: var(--good); background: var(--good-soft); }
+  .opt.correct .letter { border-color: var(--good); color: var(--good); }
+  .opt.incorrect { border-color: var(--bad); background: var(--bad-soft); }
+  .opt.incorrect .letter { border-color: var(--bad); color: var(--bad); }
+  .submit-bar {
+    position: sticky; bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--bg); padding: 12px 0 4px; margin-top: 6px;
+  }
+  .submit-bar .hint { text-align: center; font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  /* Results */
+  .score-hero { text-align: center; padding: 10px 0 18px; }
+  .score-hero .big { font-family: var(--mono); font-size: 44px; font-weight: 700; }
+  .score-hero .pass { color: var(--good); }
+  .score-hero .fail { color: var(--bad); }
+  .score-hero .verdict { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .breakdown-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; font-size: 13.5px; border-bottom: 1px solid var(--border);
+  }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-row .bfrac { font-family: var(--mono); color: var(--muted); }
+  .results-actions { display: flex; gap: 8px; margin-top: 4px; }
+  .results-actions button { flex: 1; }
+
+  kbd {
+    font-family: var(--mono); font-size: 11px; border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px; background: var(--panel-2);
+  }
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px;
+  }
+  .modal {
+    background: var(--panel); border-radius: var(--radius); padding: 20px;
+    max-width: 340px; width: 100%; box-shadow: var(--shadow);
+  }
+  .modal p { font-size: 14px; line-height: 1.5; margin: 0 0 16px; }
+  .modal .actions { display: flex; gap: 8px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   QUESTION BANK — replace this with your own questions.
+   Each question needs: section, question, options (array),
+   and correct (index of the right option, 0-based).
+   Add as many sections / questions as you like.
+   ============================================================ */
+const QUESTIONS = [
+  { section: "ROFDS", question: "To open a terminal window on any client, enter", options: ["CTRL-SHIFT-Q", "CTRL-ALT-Q", "CTRL-SHIFT-DEL"], correct: 1 },
+  { section: "ROFDS", question: "A number in brackets after a process name in VNCViewer indicates", options: ["The number of instances of the process that is running", "The number of times the process has restarted", "The process number"], correct: 1 },
+  { section: "ROFDS", question: "The ROFDS Operational system has how many levels of security?", options: ["1", "2", "3"], correct: 2 },
+  { section: "ROFDS", question: "The ROFDS connects directly to", options: ["The AFTN and Ballycasey FDPS", "To Prestwick FDPS and Ballycasey FDPS", "The AFTN and Prestwick FDPS"], correct: 2 },
+  { section: "ROFDS", question: "The ROFDS Operational system has how many clients?", options: ["14", "12", "10"], correct: 0 },
+  { section: "ROFDS", question: "System data is stored in", options: ["a series of tables", "a tree", "a set of variables"], correct: 1 },
+  { section: "ROFDS", question: "Changes to the ROFDS database require which process to be restarted?", options: ["MPS", "Middleware Synchronizer", "Middleware Server"], correct: 0 },
+  { section: "ROFDS", question: "The process responsible for distributing data between the different processes across the two servers and clients is the", options: ["Middleware Client", "Middleware Server", "Middleware Synchronizer"], correct: 1 },
+  { section: "ROFDS", question: "The four critical ROFDS processes are", options: ["Middleware Client, MPS, Clock and AFTN Bridge", "Middleware Server, MPS, Clock and Configurator", "Middleware Server, MPS, Clock and AFTN Bridge"], correct: 2 },
+  { section: "ROFDS", question: "Servers and clients send heartbeat messages to each other every how many seconds?", options: ["5", "10", "30"], correct: 0 },
+  { section: "ROFDS", question: "The server disconnects when no heartbeat received for how many seconds?", options: ["20", "30", "60"], correct: 2 },
+  { section: "ROFDS", question: "The Persistor saves system state every how many seconds?", options: ["30", "60", "120"], correct: 0 },
+
+  { section: "AFTN/AMHS", question: "ANI AFTN/AMHS network components are connected via", options: ["LAN", "WAN", "LAN and WAN"], correct: 2 },
+  { section: "AFTN/AMHS", question: "Third Party Monitoring of the AMHS system is done by", options: ["WhatsUp Gold", "Zabbix", "PRTG"], correct: 1 },
+  { section: "AFTN/AMHS", question: "AFTN Connections to regional airports are via", options: ["Internet", "IP Backbone network", "ANI Backbone"], correct: 0 },
+  { section: "AFTN/AMHS", question: "ANI AMHS network has international connections to", options: ["London and Bordeaux", "Prestwick and Brussels", "Prestwick and Bordeaux"], correct: 0 },
+  { section: "AFTN/AMHS", question: "The AMHS system connects to other AHMS systems using which protocol?", options: ["P1", "P2", "P3"], correct: 0 },
+  { section: "AFTN/AMHS", question: "The System can handle maximum AFTN messages of how many characters", options: ["1,000", "10,000", "100,000"], correct: 1 },
+  { section: "AFTN/AMHS", question: "Main and Contingency servers are located in:", options: ["Main in Ballycasey, Contingency in Dublin", "Main in Ballygirreen, Contingency in Ballycasey", "Main in Ballygirreen, Contingency in Dublin"], correct: 1 },
+  { section: "AFTN/AMHS", question: "AMHS to AFTN conversion rate messages per second is", options: ["100", "600", "1,000"], correct: 0 },
+  { section: "AFTN/AMHS", question: "AFTN to AMHS conversion rate messages per second is", options: ["100", "600", "1000"], correct: 1 },
+  { section: "AFTN/AMHS", question: "Regional Airports file AFTN messages through", options: ["Microsoft Outlook", "Voyager", "Puma"], correct: 2 },
+  { section: "AFTN/AMHS", question: "The database used to store information on the SmartMessenger server is", options: ["MySQL", "Oracle", "Microsoft SQL Server"], correct: 0 },
+  { section: "AFTN/AMHS", question: "Which of the following is not an AMHS component?", options: ["User Agent", "Message Store", "Alarm Handling Agent"], correct: 2 },
+  { section: "AFTN/AMHS", question: "Vital monitored software components giving health of the system are stored in", options: ["A table", "A database", "A Management Information Base (MIB)"], correct: 0 },
+  { section: "AFTN/AMHS", question: "The purpose of the Moxa Terminal Server is to act as", options: ["An Ethernet to Serial converter", "A repeater", "A hub"], correct: 0 },
+  { section: "AFTN/AMHS", question: "An AFTN address is composed of", options: ["A 4-letter ICAO Location Indicator plus a 4-letter group identifying an organization or service", "A 3-letter ICAO Location Indicator, a 4-letter group identifying an organization or service, and an additional letter", "A 4-letter ICAO Location Indicator, a 3-letter group identifying an organization or service, and an additional letter"], correct: 2 },
+  { section: "AFTN/AMHS", question: "Which one of the following are not AFTN message categories?", options: ["Maintenance messages", "Operational Messages", "Meteorological Messages"], correct: 0 },
+
+  { section: "VCCS", question: "What colour is the critical alert?", options: ["Yellow", "Red", "Purple"], correct: 1 },
+  { section: "VCCS", question: "Which database controls the user interface?", options: ["SBC", "DB", "DES"], correct: 2 },
+  { section: "VCCS", question: "What type of Ethernet interface is used to connect the servers?", options: ["Bonded", "Single", "Duel"], correct: 0 },
+  { section: "VCCS", question: "What type of operating system runs on the servers?", options: ["Windows", "LINUX", "UBUNTU"], correct: 1 },
+  { section: "VCCS", question: "What command do you need to use to software restart the core control application on any VCS device?", options: ["Restart GUI", "Restart process", "Restart centrala"], correct: 2 },
+  { section: "VCCS", question: "What does the Postgresql database store", options: ["Current alarms", "Alarms and CDR (Call detail records)", "Network connections"], correct: 1 },
+  { section: "VCCS", question: "After re-join VCCS with ISAVIA what needs to be completed at each CWP?", options: ["Reboot of sync DB inf", "Reload of sync DB inf", "Restart of touch screen"], correct: 2 },
+  { section: "VCCS", question: "A call can be established on an IP network using which protocol?", options: ["SIP", "TCP", "RTP"], correct: 0 },
+  { section: "VCCS", question: "Data is transmitted across the SIRP2 network using which protocol", options: ["SIP", "TCP", "RTP"], correct: 2 },
+  { section: "VCCS", question: "Configuration changes in databases are detected in a maximum of how many seconds?", options: ["0.3", "3", "30"], correct: 1 },
+  { section: "VCCS", question: "Information is stored in what type of database?", options: ["MySQL", "Oracle", "PostgreSQL"], correct: 2 },
+  { section: "VCCS", question: "What command would you enter at a server window control prompt to make the file system writable?", options: ["CTRL w", "wr", "rw"], correct: 2 },
+  { section: "VCCS", question: "GUI major alarms are indicated by what colour?", options: ["Red", "Pink", "Orange"], correct: 0 },
+  { section: "VCCS", question: "GUI acknowledged alarms that are still present are indicated by what colour?", options: ["Red", "Pink", "Orange"], correct: 1 },
+  { section: "VCCS", question: "Alarms that disappear without having been acknowledged are indicated by what colour?", options: ["Brown", "Blue", "Grey"], correct: 2 },
+  { section: "VCCS", question: "Redundancy on server hard drives is provided with 2 disks configured in which configuration?", options: ["RAID 1", "RAID 5", "RAID 6"], correct: 0 },
+  { section: "VCCS", question: "VCS outgoing calls are sent through which hardware?", options: ["Radio server", "Telephony Gateway", "Radio Gateway"], correct: 0 },
+
+  { section: "VHF", question: "How many VHF frequencies are used by NAC?", options: ["2", "3", "4"], correct: 0 },
+  { section: "VHF", question: "How is VHF used by NAC?", options: ["VOX", "Climax", "Retransmission"], correct: 1 },
+  { section: "VHF", question: "Which site only has one 64k circuit to it?", options: ["Mt Gabriel", "Dooncarton", "Malin"], correct: 2 },
+  { section: "VHF", question: "How many SIP MFCs lines are available to NAC Ops", options: ["2", "4", "6"], correct: 0 },
+  { section: "VHF", question: "Each Schmid interface module is connected to the server via", options: ["Dual 64k circuits", "Dual 2 Mbps E1 rings", "Dual Ethernet circuits"], correct: 1 },
+
+  { section: "Volmet", question: "Where does the Starcaster receive its data from?", options: ["IDS", "VCCS", "AFTN"], correct: 2 },
+  { section: "Volmet", question: "What does the Starcaster broadcast?", options: ["TAF and METAR", "Position reports", "Flight plans"], correct: 0 },
+  { section: "Volmet", question: "The Volmet distributes what Volmet broadcasts:", options: ["Dublin", "Shannon", "Dublin and Shannon"], correct: 2 },
+  { section: "Volmet", question: "The Shannon Volmet output is transmitted on how many transmitters:", options: ["2", "4", "6"], correct: 1 },
+  { section: "Volmet", question: "Log files remain on system for how many days:", options: ["30", "60", "90"], correct: 0 },
+  { section: "Volmet", question: "What is the estimated number of hours operation with UPS-supplied power?", options: ["1", "2", "4"], correct: 1 },
+  { section: "Volmet", question: "Interruption of voice output in the event of server switchover will be less than how many seconds?", options: ["0.1", "1", "10"], correct: 2 },
+  { section: "Volmet", question: "The Volmet receives weather data", options: ["Every 10 minutes", "Every 30 minutes", "On a continuous basis"], correct: 2 },
+
+  { section: "IDS", question: "IDS Server storage is via which type of RAID storage?", options: ["RAID 1", "Raid 5", "Raid 6"], correct: 1 },
+  { section: "IDS", question: "How many virtual machines are configured on each server?", options: ["1", "2", "3"], correct: 1 },
+  { section: "IDS", question: "What database is used by the virtual SQL server?", options: ["Microsoft SQL Server", "Microsoft Access", "MySql"], correct: 0 },
+  { section: "IDS", question: "To check that each pair of virtual machines are running, log on via which application:", options: ["Putty", "WinSCP", "VMSphere"], correct: 2 },
+  { section: "IDS", question: "System UPS can support the system for how many hours:", options: ["1", "2", "4"], correct: 2 },
+  { section: "IDS", question: "Where 'Replace Battery' led is lit on front panel batteries should be allowed to charge for at least how many hours?", options: ["12", "18", "24"], correct: 2 },
+  { section: "IDS", question: "Running Virtual machines are indicated on the VMSphere GUI as a", options: ["Green circle", "Green triangle", "Green Square"], correct: 1 },
+  { section: "IDS", question: "Backups are performed as follows", options: ["Daily", "Hourly", "Daily full back-up and transaction backup every hour"], correct: 2 },
+  { section: "IDS", question: "Purging of the Tracks and VHF page revisions is done", options: ["Manually as part of daily Inspection", "Manually as part of Fortnightly Inspection", "Manually as part of Half-Yearly Inspection"], correct: 1 },
+  { section: "IDS", question: "On the System Status Monitor, the colour Orange indicates", options: ["Major alarm", "Minor Alarm", "Unknown condition"], correct: 2 },
+  { section: "IDS", question: "Logging onto client PCs from the Management PC can be done via the following application from the desktop:", options: ["Putty", "WinSCP", "Remote Desktop"], correct: 2 },
+  { section: "IDS", question: "Backing up of the files necessary to rebuild the IDS system in the event of a failure is done every", options: ["Day", "Fortnight", "6 Months"], correct: 2 },
+
+  { section: "ATIS Voice Recorder", question: "The ATIS Recorder equipment is located in:", options: ["2 racks in NAC equipment room and 1 rack in CER", "1 rack in NAC equipment room and 1 rack in CEROC", "1 rack in NAC equipment room and 2 racks in CEROC"], correct: 1 },
+  { section: "ATIS Voice Recorder", question: "Recorder disks can take how long to rebuild", options: ["Several minutes", "Under an hour", "Several hours"], correct: 2 },
+  { section: "ATIS Voice Recorder", question: "The Recorder Operating System is", options: ["Windows 7 Pro", "Windows 8 Pro", "Windows 10 Pro"], correct: 0 },
+  { section: "ATIS Voice Recorder", question: "The Recorder database is", options: ["MySql", "Microsoft Access", "SQL Express"], correct: 2 },
+  { section: "ATIS Voice Recorder", question: "The Montap Unit is used to connect the recorders to a:", options: ["30 channel ISDN PRA", "64 KB telephone circuit", "Recorder port"], correct: 0 },
+  { section: "ATIS Voice Recorder", question: "In the Recorder Warnings and Error window, acknowledged errors are indicated in what text colour?", options: ["Blue", "Black", "Pink"], correct: 1 },
+  { section: "ATIS Voice Recorder", question: "In the Recorder Warnings and Error window, unacknowledged errors are indicated in what text colour?", options: ["Blue", "Black", "Red"], correct: 0 },
+  { section: "ATIS Voice Recorder", question: "The basis for the legal requirement for recordings is given in", options: ["ICAO ANNEX 10", "ICAO ANNEX 11", "ICAO ANNEX 12"], correct: 1 },
+  { section: "ATIS Voice Recorder", question: "If the dialog 'Dongle not found' appears, what is the correct first response?", options: ["Reseat dongle", "Replace dongle", "Reboot recorder"], correct: 2 },
+  { section: "ATIS Voice Recorder", question: "Recorder mirroring is as follows:", options: ["1A-2A are mirrors", "1A-1B are mirrors", "1A and 2B are mirrors"], correct: 1 },
+  { section: "ATIS Voice Recorder", question: "Recording mirroring disks are:", options: ["Raid 6", "Raid 5", "Raid 1"], correct: 2 },
+  { section: "ATIS Voice Recorder", question: "The protocol used to control the recording session is:", options: ["SIP", "RTP", "RTSP"], correct: 2 },
+  { section: "ATIS Voice Recorder", question: "The protocol used to register the participating clients in the recording session is:", options: ["SIP", "RTP", "RTSP"], correct: 0 },
+  { section: "ATIS Voice Recorder", question: "The protocol used to carry the audio packets to be recorded is:", options: ["SIP", "RTP", "RTSP"], correct: 1 },
+  { section: "ATIS Voice Recorder", question: "What is the legal time length recordings should be kept for?", options: ["30", "40", "60"], correct: 0 },
+
+  { section: "Miscellaneous", question: "What is a part of the flight data processing system?", options: ["Call sign correlation", "Plot-track processing", "Safety nets (STCA)"], correct: 0 },
+  { section: "Miscellaneous", question: "What does COTS stand for?", options: ["Custom off the shelf", "Carry Over Test State", "Communications Original Test Suite"], correct: 0 },
+  { section: "Miscellaneous", question: "What is ADEXP", options: ["A specialised protocol in the OSI stack for ATM information exchange", "It transpons the system tracks from surveillance data processing to the CWP ports", "A system for online, computer-to-computer message exchange between ATM systems"], correct: 2 },
+  { section: "Miscellaneous", question: "What is the main purpose of characteristic points?", options: ["They are used by the system to make up the operational areas that are used for different calculations such as: trajectory, MTCD, profiles, sector volumes", "They are inter-sector points used for coordination between the sectors locally in the ATC Operations room", "They are a way to define surveillance data processing systems outer boundaries for the calculation area"], correct: 0 },
+  { section: "Miscellaneous", question: "What does MSAW stand for:", options: ["Minimum Safe Altitude Warning", "Medium Standard Aircraft Wing", "Main System Application Warning"], correct: 0 },
+  { section: "Miscellaneous", question: "What is MSAW:", options: ["Safety Net alerting for aircraft proximity to terrain/obstacles", "Warning system for pilots as they approach terrain/obstacles", "Airport system for warning to ground vehicles proximity to obstacles"], correct: 0 },
+  { section: "Miscellaneous", question: "What does STCA stand for:", options: ["Short Term Conflict Alert", "Soft Target Carrier Acquisition", "Safe Terminal Carriageway Area"], correct: 0 },
+  { section: "Miscellaneous", question: "What is STCA:", options: ["A ground based safety net that alerts controllers of infringement of separation minima", "An alert system for pilots to warn them of approaching aircraft", "Safety Net alerting for aircraft proximity to terrain/obstacles"], correct: 2 },
+  { section: "Miscellaneous", question: "What is simplex communication?", options: ["The communication between sender and receiver occur only in one direction.", "The communication between sender and receiver occurs in both the directions but, one at a time.", "The communication between sender and receiver can occur simultaneously"], correct: 0 },
+  { section: "Miscellaneous", question: "What is Half Duplex communication?", options: ["The communication between sender and receiver occur only in one direction.", "The communication between sender and receiver occurs in both the directions but, one at a time.", "The communication between sender and receiver can occur simultaneously"], correct: 1 },
+  { section: "Miscellaneous", question: "What is Full Duplex communications", options: ["The communication between sender and receiver occur only in one direction.", "The communication between sender and receiver occurs in both the directions but, one at a time.", "The communication between sender and receiver can occur simultaneously"], correct: 2 },
+  { section: "Miscellaneous", question: "What is the unit of measurement for a Frequency?", options: ["Hertz", "PSI", "Grams"], correct: 0 },
+  { section: "Miscellaneous", question: "All voice communication, via both radio and telephone in the air traffic controller position must be recorded and saved. How many days should it be saved for?", options: ["30 days", "3 days", "300 days"], correct: 0 },
+  { section: "Miscellaneous", question: "Which of the following best describes the Aeronautical Mobile Frequency range?", options: ["118 Hz - 137 Hz", "118GHz - 137 GHz", "118MHz - 137MHz"], correct: 2 },
+  { section: "Miscellaneous", question: "Which of the following best describes the HF Aeronautical Mobile Frequency range?", options: ["2 Hz - 80 Hz", "2GHz - 30 GHz", "2MHz - 30MHz"], correct: 2 },
+  { section: "Miscellaneous", question: "Which of the following statements best describes BSS (Best Signal Selection)", options: ["VCS (Voice Communication System) selects the receiver with the best reception", "VCS ignores the receiver with the best reception", "VCS selects the two receivers with the best reception"], correct: 0 }
+];
+/* ============================================================ */
+
+const PASS_MARK = 80;
+const TIMER_SECONDS_PER_Q = 90;
+const FINAL_EXAM_SIZE = 50;
+const MIN_PER_SECTION = 3;
+const HISTORY_KEY = "mcq_quiz_history_v1";
+const HISTORY_MAX = 5;
+
+const sections = [...new Set(QUESTIONS.map(q => q.section))];
+const app = document.getElementById("app");
+
+let state = {
+  screen: "home",           // home | quiz | results
+  mode: "module",           // module | final | custom
+  selectedSection: sections[0] || null,
+  selectedCustom: new Set(),
+  instantFeedback: true,
+  timerOn: false,
+  quiz: null,               // { questions: [...], mode, poolLabel }
+  answers: {},               // qIndex -> optionIndex
+  locked: {},                 // qIndex -> true once answered w/ instant feedback
+  submitted: false,
+  timeLeft: 0,
+  timerHandle: null,
+  activeIndex: 0,
+  confirmSwitch: null
+};
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function buildQuestionInstance(q){
+  const optOrder = shuffle(q.options.map((opt,i)=>({opt,i})));
+  const newCorrect = optOrder.findIndex(o => o.i === q.correct);
+  return { section: q.section, question: q.question, options: optOrder.map(o=>o.opt), correct: newCorrect };
+}
+
+function poolForSelection(){
+  if(state.mode === "module"){
+    return QUESTIONS.filter(q => q.section === state.selectedSection);
+  }
+  if(state.mode === "custom"){
+    if(state.selectedCustom.size === 0) return [];
+    return QUESTIONS.filter(q => state.selectedCustom.has(q.section));
+  }
+  return QUESTIONS; // final
+}
+
+function buildFinalExam(){
+  const bySection = {};
+  sections.forEach(s => bySection[s] = shuffle(QUESTIONS.filter(q=>q.section===s)));
+  let picked = [];
+  sections.forEach(s => { picked = picked.concat(bySection[s].slice(0, MIN_PER_SECTION)); });
+  const used = new Set(picked);
+  const remaining = shuffle(QUESTIONS.filter(q => !used.has(q)));
+  let i = 0;
+  while(picked.length < FINAL_EXAM_SIZE && i < remaining.length){
+    picked.push(remaining[i]); i++;
+  }
+  return shuffle(picked).slice(0, Math.min(FINAL_EXAM_SIZE, picked.length));
+}
+
+function startQuiz(){
+  let pool;
+  let label;
+  if(state.mode === "module"){
+    pool = poolForSelection();
+    label = state.selectedSection;
+  } else if(state.mode === "custom"){
+    pool = poolForSelection();
+    label = "Custom (" + state.selectedCustom.size + " section" + (state.selectedCustom.size===1?"":"s") + ")";
+  } else {
+    pool = buildFinalExam();
+    label = "Final Exam";
+  }
+  if(!pool || pool.length === 0) return;
+  const instances = shuffle(pool).map(buildQuestionInstance);
+  state.quiz = { questions: instances, mode: state.mode, poolLabel: label };
+  state.answers = {};
+  state.locked = {};
+  state.submitted = false;
+  state.activeIndex = 0;
+  state.screen = "quiz";
+  if(state.timerOn){
+    state.timeLeft = instances.length * TIMER_SECONDS_PER_Q;
+    startTimer();
+  }
+  render();
+  setTimeout(()=> setupObserver(), 50);
+}
+
+function startTimer(){
+  clearInterval(state.timerHandle);
+  state.timerHandle = setInterval(()=>{
+    state.timeLeft--;
+    updateTimerDisplay();
+    if(state.timeLeft <= 0){
+      clearInterval(state.timerHandle);
+      submitQuiz();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay(){
+  const el = document.getElementById("timerDisplay");
+  if(!el) return;
+  const m = Math.floor(state.timeLeft/60);
+  const s = state.timeLeft%60;
+  el.textContent = m + ":" + String(s).padStart(2,"0");
+  el.classList.toggle("low", state.timeLeft <= 30);
+}
+
+function selectAnswer(qIndex, optIndex){
+  if(state.submitted) return;
+  if(state.instantFeedback && state.locked[qIndex] !== undefined) return;
+  state.answers[qIndex] = optIndex;
+  if(state.instantFeedback){
+    state.locked[qIndex] = true;
+  }
+  render();
+  setTimeout(()=> setupObserver(), 30);
+}
+
+function unansweredCount(){
+  return state.quiz.questions.length - Object.keys(state.answers).length;
+}
+
+function submitQuiz(force){
+  if(!force && unansweredCount() > 0){
+    state.confirmSwitch = "submit-blank";
+    render();
+    return;
+  }
+  clearInterval(state.timerHandle);
+  state.submitted = true;
+  state.screen = "results";
+  saveAttempt();
+  render();
+  window.scrollTo(0,0);
+}
+
+function scoreQuiz(){
+  const qs = state.quiz.questions;
+  let correct = 0;
+  const bySection = {};
+  qs.forEach((q,i)=>{
+    if(!bySection[q.section]) bySection[q.section] = {correct:0, total:0};
+    bySection[q.section].total++;
+    if(state.answers[i] === q.correct){ correct++; bySection[q.section].correct++; }
+  });
+  const pct = Math.round((correct / qs.length) * 100);
+  return { correct, total: qs.length, pct, bySection };
+}
+
+function loadHistory(){
+  try{
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+
+function saveAttempt(){
+  const { pct } = scoreQuiz();
+  const entry = { date: new Date().toISOString(), mode: state.quiz.mode, label: state.quiz.poolLabel, pct };
+  try{
+    let hist = loadHistory();
+    hist.unshift(entry);
+    hist = hist.slice(0, HISTORY_MAX);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+  }catch(e){ /* storage unavailable — continue without saving */ }
+}
+
+function resetHistory(){
+  try{ localStorage.removeItem(HISTORY_KEY); }catch(e){}
+  render();
+}
+
+function retryQuiz(){
+  const pool = state.quiz.questions.map(q => ({ section: q.section, question: q.question, options: q.options, correct: q.correct }));
+  // reshuffle option order fresh
+  const base = pool.map(q => {
+    const original = QUESTIONS.find(o => o.question === q.question) || q;
+    return original;
+  });
+  const instances = shuffle(base).map(buildQuestionInstance);
+  state.quiz.questions = instances;
+  state.answers = {};
+  state.locked = {};
+  state.submitted = false;
+  state.activeIndex = 0;
+  state.screen = "quiz";
+  if(state.timerOn){ state.timeLeft = instances.length * TIMER_SECONDS_PER_Q; startTimer(); }
+  render();
+  setTimeout(()=> setupObserver(), 50);
+}
+
+function retakeIncorrect(){
+  const qs = state.quiz.questions;
+  const wrongOriginals = [];
+  qs.forEach((q,i)=>{
+    if(state.answers[i] !== q.correct){
+      const original = QUESTIONS.find(o => o.question === q.question);
+      if(original) wrongOriginals.push(original);
+    }
+  });
+  if(wrongOriginals.length === 0) return;
+  const instances = shuffle(wrongOriginals).map(buildQuestionInstance);
+  state.quiz = { questions: instances, mode: state.quiz.mode, poolLabel: state.quiz.poolLabel + " · incorrect" };
+  state.answers = {};
+  state.locked = {};
+  state.submitted = false;
+  state.activeIndex = 0;
+  state.screen = "quiz";
+  if(state.timerOn){ state.timeLeft = instances.length * TIMER_SECONDS_PER_Q; startTimer(); }
+  render();
+  setTimeout(()=> setupObserver(), 50);
+}
+
+function goHome(force){
+  if(state.screen === "quiz" && !force){
+    state.confirmSwitch = "leave-quiz";
+    render();
+    return;
+  }
+  clearInterval(state.timerHandle);
+  state.screen = "home";
+  state.quiz = null;
+  render();
+}
+
+let observer = null;
+function setupObserver(){
+  if(observer) observer.disconnect();
+  const cards = document.querySelectorAll(".q-card");
+  if(!cards.length) return;
+  observer = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const idx = parseInt(e.target.dataset.qindex,10);
+        state.activeIndex = idx;
+      }
+    });
+  }, { threshold: 0.6 });
+  cards.forEach(c => observer.observe(c));
+}
+
+document.addEventListener("keydown", (e)=>{
+  if(state.screen !== "quiz" || state.submitted) return;
+  const key = e.key.toLowerCase();
+  if(["a","b","c"].includes(key)){
+    const letterIndex = {a:0,b:1,c:2}[key];
+    const q = state.quiz.questions[state.activeIndex];
+    if(q && letterIndex < q.options.length){
+      selectAnswer(state.activeIndex, letterIndex);
+    }
+  } else if(e.key === "Enter"){
+    submitQuiz(false);
+  }
+});
+
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined,{month:"short",day:"numeric"}) + " " + d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+}
+
+function render(){
+  if(state.screen === "home") return renderHome();
+  if(state.screen === "quiz") return renderQuiz();
+  if(state.screen === "results") return renderResults();
+}
+
+function renderHome(){
+  const hist = loadHistory();
+  const best = hist.length ? Math.max(...hist.map(h=>h.pct)) : null;
+
+  let poolCount = poolForSelection().length;
+  let startEnabled = poolCount > 0;
+  if(state.mode === "final") { poolCount = QUESTIONS.length; startEnabled = QUESTIONS.length > 0; }
+
+  const modeTabs = `
+    <div class="mode-tabs">
+      <button data-mode="module" class="${state.mode==='module'?'active':''}">Module</button>
+      <button data-mode="final" class="${state.mode==='final'?'active':''}">Final Exam</button>
+      <button data-mode="custom" class="${state.mode==='custom'?'active':''}">Custom</button>
+    </div>`;
+
+  let modeBody = "";
+  if(state.mode === "module"){
+    modeBody = `<h2 class="section-title">Pick a section</h2><div class="section-list">` +
+      sections.map(s => {
+        const count = QUESTIONS.filter(q=>q.section===s).length;
+        return `<div class="section-row ${s===state.selectedSection?'selected':''}" data-section="${s}">
+          <div class="row-flex"><span class="radio-dot"></span><span class="name">${s}</span></div>
+          <span class="count">${count} Q</span>
+        </div>`;
+      }).join("") + `</div>`;
+  } else if(state.mode === "custom"){
+    modeBody = `<h2 class="section-title">Select sections to mix</h2><div class="section-list">` +
+      sections.map(s => {
+        const count = QUESTIONS.filter(q=>q.section===s).length;
+        const sel = state.selectedCustom.has(s);
+        return `<div class="section-row ${sel?'selected':''}" data-customsection="${s}">
+          <div class="row-flex"><span class="check-box"></span><span class="name">${s}</span></div>
+          <span class="count">${count} Q</span>
+        </div>`;
+      }).join("") + `</div>`;
+  } else {
+    modeBody = `<p class="pool-line">${FINAL_EXAM_SIZE} questions drawn from all sections. Every section is guaranteed at least ${MIN_PER_SECTION}.</p>`;
+  }
+
+  app.innerHTML = `
+    <header class="top" id="titleHome">
+      <h1>MCQ Quiz Generator</h1>
+      <span class="tag">${QUESTIONS.length} questions loaded</span>
+    </header>
+
+    <div class="panel">
+      ${modeTabs}
+      ${modeBody}
+      <p class="pool-line">Questions in pool: ${poolCount}</p>
+
+      <div class="toggle-row">
+        <span>Instant feedback</span>
+        <div class="switch ${state.instantFeedback?'on':''}" id="toggleFeedback"></div>
+      </div>
+      <div class="toggle-row">
+        <span>Timer (1.5 min / question)</span>
+        <div class="switch ${state.timerOn?'on':''}" id="toggleTimer"></div>
+      </div>
+
+      <button class="primary" id="startBtn" ${startEnabled?'':'disabled'} style="margin-top:14px">Start Quiz</button>
+    </div>
+
+    <div class="panel">
+      <h2 class="section-title">Previous Attempts</h2>
+      ${hist.length ? `<p class="best-line">All-time best: <strong>${best}%</strong></p>` : ''}
+      ${hist.length === 0 ? '<p class="empty-note">No attempts yet.</p>' :
+        hist.map((h,i)=>{
+          const prev = hist[i+1];
+          let trendCls = "flat", trendChar = "→";
+          if(prev){
+            if(h.pct > prev.pct){ trendCls="up"; trendChar="↑"; }
+            else if(h.pct < prev.pct){ trendCls="down"; trendChar="↓"; }
+          }
+          return `<div class="history-item">
+            <span class="label">${fmtDate(h.date)} · ${h.label}</span>
+            <span><span class="score">${h.pct}%</span><span class="trend ${trendCls}">${trendChar}</span></span>
+          </div>`;
+        }).join("")
+      }
+      ${hist.length ? `<button class="ghost" id="resetHistBtn">Reset History</button>` : ''}
+    </div>
+  `;
+
+  document.getElementById("titleHome").onclick = ()=>{};
+  document.querySelectorAll("[data-mode]").forEach(b=>{
+    b.onclick = ()=>{ state.mode = b.dataset.mode; render(); };
+  });
+  document.querySelectorAll("[data-section]").forEach(b=>{
+    b.onclick = ()=>{ state.selectedSection = b.dataset.section; render(); };
+  });
+  document.querySelectorAll("[data-customsection]").forEach(b=>{
+    b.onclick = ()=>{
+      const s = b.dataset.customsection;
+      if(state.selectedCustom.has(s)) state.selectedCustom.delete(s);
+      else state.selectedCustom.add(s);
+      render();
+    };
+  });
+  const fb = document.getElementById("toggleFeedback");
+  if(fb) fb.onclick = ()=>{ state.instantFeedback = !state.instantFeedback; render(); };
+  const tm = document.getElementById("toggleTimer");
+  if(tm) tm.onclick = ()=>{ state.timerOn = !state.timerOn; render(); };
+  const startBtn = document.getElementById("startBtn");
+  if(startBtn) startBtn.onclick = startQuiz;
+  const resetBtn = document.getElementById("resetHistBtn");
+  if(resetBtn) resetBtn.onclick = resetHistory;
+}
+
+function renderQuiz(){
+  const qs = state.quiz.questions;
+  const answeredCount = Object.keys(state.answers).length;
+  const pct = Math.round((answeredCount / qs.length) * 100);
+
+  const cardsHtml = qs.map((q,i)=>{
+    const letters = ["A","B","C"];
+    const userAns = state.answers[i];
+    const locked = state.instantFeedback && state.locked[i] !== undefined;
+    const optsHtml = q.options.map((opt,oi)=>{
+      let cls = "opt";
+      if(locked){
+        if(oi === q.correct) cls += " correct";
+        else if(oi === userAns) cls += " incorrect";
+      } else if(userAns === oi){
+        cls += " selected";
+      }
+      return `<div class="${cls}" data-qi="${i}" data-oi="${oi}">
+        <span class="letter">${letters[oi]}</span><span>${opt}</span>
+      </div>`;
+    }).join("");
+    return `<div class="q-card" data-qindex="${i}">
+      <div class="q-num">Question ${i+1} of ${qs.length} · ${q.section}</div>
+      <div class="q-text">${q.question}</div>
+      ${optsHtml}
+    </div>`;
+  }).join("");
+
+  app.innerHTML = `
+    <header class="top" id="titleQuiz" style="cursor:pointer">
+      <h1>MCQ Quiz Generator</h1>
+      <span class="tag">${state.quiz.poolLabel}</span>
+    </header>
+    <div class="progress-bar"><div style="width:${pct}%"></div></div>
+    <div class="quiz-meta">
+      <span>${answeredCount} / ${qs.length} answered</span>
+      ${state.timerOn ? `<span class="timer" id="timerDisplay">--:--</span>` : ''}
+    </div>
+    ${cardsHtml}
+    <div class="submit-bar">
+      <button class="primary" id="submitBtn">Submit</button>
+      <p class="hint">Press <kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> to answer · <kbd>Enter</kbd> to submit</p>
+    </div>
+    ${state.confirmSwitch ? renderConfirmModal() : ''}
+  `;
+
+  document.getElementById("titleQuiz").onclick = ()=> goHome(false);
+  document.querySelectorAll(".opt").forEach(el=>{
+    el.onclick = ()=> selectAnswer(parseInt(el.dataset.qi,10), parseInt(el.dataset.oi,10));
+  });
+  document.getElementById("submitBtn").onclick = ()=> submitQuiz(false);
+  if(state.timerOn) updateTimerDisplay();
+  bindModal();
+}
+
+function renderConfirmModal(){
+  if(state.confirmSwitch === "submit-blank"){
+    return `<div class="modal-backdrop"><div class="modal">
+      <p>You've left ${unansweredCount()} question${unansweredCount()===1?'':'s'} blank. Blank answers count as incorrect. Submit anyway?</p>
+      <div class="actions">
+        <button class="ghost" id="modalCancel" style="margin-top:0">Cancel</button>
+        <button class="primary" id="modalConfirm">Submit anyway</button>
+      </div>
+    </div></div>`;
+  }
+  if(state.confirmSwitch === "leave-quiz"){
+    return `<div class="modal-backdrop"><div class="modal">
+      <p>A quiz is in progress. Leaving now will discard your current answers. Continue?</p>
+      <div class="actions">
+        <button class="ghost" id="modalCancel" style="margin-top:0">Stay</button>
+        <button class="primary" id="modalConfirm">Leave quiz</button>
+      </div>
+    </div></div>`;
+  }
+  return "";
+}
+
+function bindModal(){
+  const cancel = document.getElementById("modalCancel");
+  const confirm = document.getElementById("modalConfirm");
+  if(cancel) cancel.onclick = ()=>{ state.confirmSwitch = null; render(); };
+  if(confirm) confirm.onclick = ()=>{
+    const type = state.confirmSwitch;
+    state.confirmSwitch = null;
+    if(type === "submit-blank") submitQuiz(true);
+    if(type === "leave-quiz") goHome(true);
+  };
+}
+
+function renderResults(){
+  const { correct, total, pct, bySection } = scoreQuiz();
+  const passed = pct >= PASS_MARK;
+  const hasIncorrect = correct < total;
+
+  app.innerHTML = `
+    <header class="top" id="titleResults" style="cursor:pointer">
+      <h1>MCQ Quiz Generator</h1>
+      <span class="tag">${state.quiz.poolLabel}</span>
+    </header>
+    <div class="panel">
+      <div class="score-hero">
+        <div class="big ${passed?'pass':'fail'}">${pct}%</div>
+        <div class="verdict">${correct} / ${total} correct · ${passed ? 'Pass' : 'Below pass mark'} (${PASS_MARK}% required)</div>
+      </div>
+      <h2 class="section-title">Section breakdown</h2>
+      ${Object.keys(bySection).map(s=>{
+        const b = bySection[s];
+        const spct = Math.round((b.correct/b.total)*100);
+        return `<div class="breakdown-row"><span>${s}</span><span class="bfrac">${b.correct}/${b.total} · ${spct}%</span></div>`;
+      }).join("")}
+      <div class="results-actions" style="margin-top:14px">
+        <button class="ghost" id="retryBtn" style="margin-top:0">Retry</button>
+        <button class="ghost" id="retakeBtn" style="margin-top:0" ${hasIncorrect?'':'disabled'}>Retake Incorrect</button>
+      </div>
+      <button class="primary" id="homeBtn" style="margin-top:10px">Back to Home</button>
+    </div>
+  `;
+  document.getElementById("titleResults").onclick = ()=> goHome(true);
+  document.getElementById("retryBtn").onclick = retryQuiz;
+  document.getElementById("retakeBtn").onclick = retakeIncorrect;
+  document.getElementById("homeBtn").onclick = ()=> goHome(true);
+}
+
+render();
+})();
+</script>
+</body>
+</html>
